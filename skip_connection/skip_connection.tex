@@ -1,0 +1,215 @@
+\documentclass[11pt]{article}
+
+%% ========================================================
+%% package imports
+
+\usepackage[short]{infimum}
+
+%% ========================================================
+%% document
+
+
+\begin{document}
+
+    \subsection{Layers}
+
+    Conventionally, a layer in ML is an affine transformation of the input followed by a nonlinear function: mathematically,
+    \begin{equation}
+        \mbx \xmapsto{\text{affine}} \mbW\mbx + \mbb \xmapsto{\text{nonlinear}} f\left( \mbW\mbx + \mbb \right),
+    \end{equation}
+    where $\mbW$ is a matrix called \textit{weight}, $\mbb$ is a vectcalled \textit{bias}, and $f$ is a nonlinear function called \textit{activation function}. Typical choices of an activation function are $\text{sigmoid},\tanh,\text{ReLU}$ and so on.
+
+    We often represent this map via the following diagram:
+
+    \begin{figure}[H]
+        \center
+            \begin{center}
+                \begin{tikzpicture}[main/.style={draw,circle},node distance={1cm}]
+                    \node [] (x) {$\mbx$};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box) [right of=x] {};
+                    \node [] (y) [right=0.5cm of box] {$f\left( \mbW\mbx+\mbb \right)$};
+                    \draw [-] (x) -- (box);
+                    \draw [-] (box) -- (y);
+                \end{tikzpicture}
+            \end{center}
+        \caption{Single layer in ML}
+    \end{figure}
+
+    \noindent When we have multiple layers, it is conventional to omit the intermediate outputs $f\left( \mbW\mbx+\mbb \right)$, or \textit{hidden states}, and simply draw the lines and boxes:
+
+    \begin{figure}[H]
+        \center
+            \begin{center}
+                \begin{tikzpicture}[main/.style={draw,circle},node distance={1cm}]
+                    \node [] (x) {$\mbx$};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box1) [right of=x] {};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box2) [right of=box1] {};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box3) [right of=box2] {};
+                    \node [] (y) [right of=box3] {$\mby$};
+                    \draw [-] (x) -- (box);
+                    \draw [-] (box1) -- (box2);
+                    \draw [-] (box2) -- (box3);
+                    \draw [-] (box3) -- (y);
+                \end{tikzpicture}
+            \end{center}
+        \caption{Multiple layers in ML}
+    \end{figure}
+
+    \subsection{Skip Connection}
+
+    \textit{Skip connection} is a technique in machine learning (ML) that allows a data to bypass one or more layers. Concretely, we combine the output of a layer with the outputs of previous layers. There are two major types of skip connection: addition and concatenation. For now, let us focus on the former case.
+
+    An \textit{addition-based} skip connection combines outputs, as its name suggests, by addition. When dealing with a single layer, this can be represented diagrammatically by:
+    
+    \begin{figure}[H]
+        \center
+            \begin{center}
+                \begin{tikzpicture}[main/.style={draw,circle},node distance={1cm}]
+                    \node [] (x) {$\mbx$};
+                    \node [rectangle,draw,inner sep=0cm] (p) [right=0.25cm of x] {};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box) [right=0.25cm of p] {};
+                    \node [rectangle,draw,inner sep=0.1cm] (plus) [right of=box] {$+$};
+                    \node [] (y) [right=0.5cm of plus] {$f\left( \mbW\mbx+\mbb \right)+\mbx$};
+                    \draw [-] (x) -- (box);
+                    \draw [-] (box) -- (plus);
+                    \draw [-] (plus) -- (y);
+                    \draw [-] (p) -- +(0,1) -| (plus);
+                \end{tikzpicture}
+            \end{center}
+        \caption{Single addition-based skip connection}
+    \end{figure}
+
+    \noindent In other words, we are adding the input $\mbx$ to the output $f\left( \mbW\mbx+\mbb \right)$ of the layer without skip connection. We can of course have multiple layers with multiple skip connections:
+
+    \begin{figure}[H]
+        \center
+            \begin{center}
+                \begin{tikzpicture}[main/.style={draw,circle},node distance={1cm}]
+                    \node [] (x) {$\mbx$};
+                    \node [rectangle,draw,inner sep=0cm] (p1) [right=0.25cm of x] {};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box1) [right=0.25cm of p1] {};
+                    \node [rectangle,draw,inner sep=0.1cm] (plus1) [right of=box1] {$+$};
+                    \node [rectangle,draw,inner sep=0cm] (p2) [right=0.25cm of plus1] {};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box2) [right=0.25cm of p2] {};
+                    \node [rectangle,draw,inner sep=0.1cm] (plus2) [right of=box2] {$+$};
+                    \node [rectangle,draw,inner sep=0cm] (p3) [right=0.25cm of plus2] {};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box3) [right=0.25cm of p3] {};
+                    \node [rectangle,draw,inner sep=0.1cm] (plus3) [right of=box3] {$+$};
+                    \node [] (y) [right of=plus3] {$\mby$};
+                    \draw [-] (x) -- (box1);
+                    \draw [-] (box1) -- (plus1);
+                    \draw [-] (plus1) -- (box2);
+                    \draw [-] (box2) -- (plus2);
+                    \draw [-] (plus2) -- (box3);
+                    \draw [-] (box3) -- (plus3);
+                    \draw [-] (plus3) -- (y);
+                    \draw [-] (p1) -- +(0,1) -| (plus1);
+                    \draw [-] (p2) -- +(0,1) -| (plus2);
+                    \draw [-] (p3) -- +(0,1) -| (plus3);
+                \end{tikzpicture}
+            \end{center}
+        \caption{Multiple addition-based skip connections}
+    \end{figure}
+
+    \noindent Sometimes we can skip connect multiple layers:
+
+    \begin{figure}[H]
+        \center
+            \begin{center}
+                \begin{tikzpicture}[main/.style={draw,circle},node distance={1cm}]
+                    \node [] (x) {$\mbx$};
+                    \node [rectangle,draw,inner sep=0cm] (p1) [right=0.25cm of x] {};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box1) [right=0.25cm of p1] {};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box2) [right of=box1] {};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box3) [right of=box2] {};
+                    \node [rectangle,draw,inner sep=0.1cm] (plus3) [right of=box3] {$+$};
+                    \node [] (y) [right of=plus3] {$\mby$};
+                    \draw [-] (x) -- (box1);
+                    \draw [-] (box1) -- (box2);
+                    \draw [-] (box2) -- (box3);
+                    \draw [-] (box3) -- (plus3);
+                    \draw [-] (plus3) -- (y);
+                    \draw [-] (p1) -- +(0,1) -| (plus3);
+                \end{tikzpicture}
+            \end{center}
+        \caption{Skipping through multiple layers}
+    \end{figure}
+
+    \begin{remark}{}
+        Often times it is desirable to normalize layer outputs.\footnotemark[1] That is, given
+        $\mby = f\left( \mbW\mbx+\mbb \right) + \mbx$,
+        normalizing $\mby$ is a transformation on it so that its entries (i.e. \textit{features}) are on a similar scale. Most normalizations are nonlinear transformations. For simplicity, we are not going to include normalization in our layers.
+
+        \noindent
+        \begin{minipage}{\textwidth}
+            \footnotetext[1]{In the presence of a skip connection, normalization is usually done afterwards. After all, what's the point of doing normalization before the skip connection?}
+        \end{minipage}
+    \end{remark}
+
+    \np Now one may ask,
+    \begin{equation*}
+        \text{\textit{what's the point of skip connection?}}
+    \end{equation*}
+    The goal of ML seems to be finding a suitable transformation that maps inputs $\mbx$ to desired outputs $\mby$. At first glance, this seems to suggest that skip connection may be useless since we are sending an input without processing it. But let's take a closer look at the layers. As mentioned before, it is a composition of two transformations: an affine transformation $\mbx\mapsto\mbW\mbx+\mbb$ followed by a nonlinear transformation $\mbW\mbx+\mbb\mapsto f\left( \mbW\mbx+\mbb \right)$. Usually we make the nonlinear transformation $f$ to be fixed, so let's assume this is the case. With $f$ fixed, we can still adjust the output of the layer by adjusting $\mbW,\mbb$, and almost always this is done by \textit{backpropagation}.
+
+    \subsection{Backpropagation}
+    
+    To make things more concrete, let us consider posing an ML problem as an optimization problem. Assume that there is an unknown function $F:X\to Y$ that we want to figure out. Although we do not know what $F$ is, we have some partial information: say we know a set
+    \begin{equation}
+        \mS = \left\lbrace \left( \mbx_i,\mby_i \right) \right\rbrace^{}_{i\in I}
+    \end{equation}
+    for some finite subset $\left\lbrace \mbx_i \right\rbrace_{i\in I}\subseteq X$. With this partial information in hand, our job is to best approximate $F$, say by coming up with a map $G:X\to Y$.
+
+    There could be various ways that we can tackle this task, but one particular way that people have been found to be useful is to utilize a \textit{cost function}. That is, we consider a nonnegative map $C$ over all possible maps $G:X\to Y$\footnote{That is, $C$ would be a \textit{functional} in the applied mathematician's lingo.} such that $C\left( G \right)$ measures how far $G$ is from $F$. Of course, due to the limitation of our knowledge in $F$, the best we can try would be in terms of the only data we know of: $\left( \mbx_i,\mby_i \right)$ for $i\in I$. A typical choice would be the mean square of $2$-norm (so called \textit{mean-squared-error}),
+    \begin{equation}
+        C\left( G \right) = \frac{1}{\left| I \right|}\sum^{}_{i\in I} \left\lVert F\left( \mbx_i \right) - G\left( \mbx_i \right) \right\rVert_{2}^{2} = \frac{1}{\left| I \right|} \sum^{}_{i\in I} \left\lVert \mby_i-G\left( \mbx_i \right) \right\rVert_{2}^{2},
+    \end{equation}
+    among many others. Therefore, our problem would be
+    \begin{equation}
+        \text{minimize } C\left( G \right).\footnote{One may notice that, while $G=F$ implies minimum $C\left( G \right)$ for a reasonably defined $C$, the converse is mostly not the case. This is what is underlying the problem of \textit{overfitting}.}
+    \end{equation}
+
+    Now that we have an actual problem, let us see how we can tackle it. As an analogy, consider yourself standing on a mountain that you never went before on a very foggy day. You want to go back to your base, which is located at the bottom of the mountain. But because of the fog, you can only see regions around you. Then probably the most sensible thing that you could do is to take steps towards the direction where the elevation seems to decreasing, at least in the vicinity of yourself.
+
+    We can try to solve minimization problem like [3.3] in an analogous way. The global information about the cost function $C$ is usually unaccessible (just like you cannot see far in a foggy day), so we have to work with the local information. We can use gradient of $C$ to find out the direction of steepest descent, so that we can take a step in that direction.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\end{document}
