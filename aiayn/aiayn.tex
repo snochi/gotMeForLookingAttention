@@ -1,0 +1,174 @@
+\documentclass[11pt]{article}
+
+%% ========================================================
+%% package imports
+
+\usepackage[short]{infimum}
+
+%% ========================================================
+%% document
+
+
+\begin{document}
+
+    \subsection{Encoder-decoder Architecture}
+
+    Suppose that we want to build an ML architecture for \textit{machine translation}. 
+
+    \begin{figure}[H]
+        \center
+            \begin{center}
+                \begin{tikzpicture}[main/.style={draw,circle},node distance={1cm}]
+                    \node [] (x) {Hi!};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box) [right=0.5cm of x] {};
+                    \node [] (y) [right=0.5cm of box] {Привіт!};
+                    \draw [-] (x) -- (box);
+                    \draw [-] (box) -- (y);
+                \end{tikzpicture}
+            \end{center}
+        \caption{Translating English to Ukrainian}
+    \end{figure}
+
+    \noindent For concreteness, say we want to translate sentence by sentence. The rule of thumb in designing any kind of algorithm is to capture the structure of the problem that we want to solve. A sentence is naturally a sequence of words, and since we want to perform mathematical operations including matrix multiplication on the input, it would be adequate to represent words by vectors. 
+    
+    A common way of representing words as vectors is \textit{one-hot encoding}. That is, suppose we have a dictionary of $n$ words. Then using one-hot encoding, we represent the words by the standard basis vectors of $\R^n$:
+    \begin{equation}
+        \text{(a word)} \mapsto \mbe_k ,
+    \end{equation}
+    where $\mbe_k\in\R^n$ has $1$ in its $k$th entry and the other entries are $0$.
+
+    Although this way of representing words by vectors is straightforward, one major drawback is that it does not capture the structure of words in a language. Some words in a language are synonyms and some are antonyms. Some have totally unrelated meaning. However, in our current representation, this is not reflected; the one-hot encodings are \textit{orthonormal}. Therefore, to capture the structure behind the vectors, we build a transformation called \textit{encoder}.
+       
+    \begin{figure}[H]
+        \center
+            \begin{center}
+                \begin{tikzpicture}[main/.style={draw,circle},node distance={1cm}]
+                    \node [] (x) {$\mbe_k$};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box) [right=0.5cm of x] {encoder};
+                    \node [] (y) [right=0.5cm of box] {$\mbx_k$};
+                    \draw [-] (x) -- (box);
+                    \draw [-] (box) -- (y);
+                \end{tikzpicture}
+            \end{center}
+        \caption{An Encoder}
+    \end{figure}
+       
+    \noindent In this setting, an encoder is a map $f:\left\lbrace \mbe_k \right\rbrace_k\to\R^m$. Now, let's think about the relation between $n,m$. Clearly, the words in a language are related to each other. To represent such relationships, we expect the encoded vectors $\mbx_k$ to be linearly dependent of each other, so it is natural to take $m\leq n$ (in fact, $m\ll n$). Another reason for this would be, by reducing the dimensionality of vector representations of a word, we are \textit{compressing} the data, therefore requiring less resources during the training.
+
+    Of course, if we are using encoders to compress our input to the model, we should be also able to \textit{decompress} to obtain one-hot representations back. This is the job of a \textit{decoder}. Therefore, we have an \textit{encoder-decoder architecture}:
+    
+    \begin{figure}[H]
+        \center
+            \begin{center}
+                \begin{tikzpicture}[main/.style={draw,circle},node distance={1cm}]
+                    \node [] (x) {};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box1) [right=0.5cm of x] {encoder};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box2) [right=0.5cm of box1] {};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box3) [right=0.5cm of box2] {decoder};
+                    \node [] (y) [right=0.5cm of box3] {};
+                    \draw [-] (x) -- (box1);
+                    \draw [-] (box1) -- (box2);
+                    \draw [-] (box2) -- (box3);
+                    \draw [-] (box3) -- (y);
+                \end{tikzpicture}
+            \end{center}
+        \caption{An encoder-decoder architecture}
+    \end{figure}
+    
+    \np The crucial question is,
+    \begin{equation}
+        \text{\textit{what should be the network that goes between the encoder and decoder?}}
+    \end{equation}
+    
+    \subsection{Recurrent Neural Network (RNN)}
+    
+    As mentioned earlier, we should try to capture the structure of languages, and sentences in a language has a natural sequencial structure. To see this closely, let us consider a sentence represented as $X = \left( \mbx^1,\ldots,\mbx^k \right)$, where $\mbx^i$ are the encoded representations of the words in the sentence. Clearly, the words in a sentence are highly-correlated. For instance, if we see the word \textit{the}, we are quite certain that the following word would not be a verb. In other words, if we know the \textit{prior} words $\mbx^1,\ldots,\mbx^{i-1}$ in the sentence, then given a candidate $\xi$ for $\mbx^i$, we expect the probabilities $p\left( \mbx^i=\xi \right)$ and $p\left( \mbx^i=\xi | \mbx^1\cdots\mbx^{i-1} \right)$\footnote{This is quite an abuse of notation, since we are implicitly treating $\mbx^i$ to be a random variable. So we should really specify realizations $\xi^1\cdots \xi^{i-1}$ for $\mbx^1\cdots\mbx^{i-1}$ and write $p\left( \mbx^i=\xi | \mbx^1\cdots\mbx^{i-1} = \xi^1\cdots\xi^{i-1} \right)$.} to be quite different. This is at the core of a \textit{recurrent neural network} (RNN). To discuss RNN efficiently, let us first consider a diagrammatical representation of it, at least on the input side.
+
+    \begin{figure}[H]
+        \center
+            \begin{center}
+                \begin{tikzpicture}[main/.style={draw,circle},node distance={1cm}]
+                    \node [] (x1) {$\mbx^1$};
+                    \node [] (x2) [right=0.5cm of x1]{$\mbx^2$};
+                    \node [] (x3) [right=0.5cm of x2]{$\mbx^3$};
+                    \node [] (x4) [right=0.5cm of x3]{$\cdots$};
+                    \node [] (x5) [right=0.5cm of x4]{$\mbx^k$};
+                    \node [] (x6) [right=0.5cm of x5]{eos};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box1) [above=0.5cm of x1] {};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box2) [above=0.5cm of x2] {};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box3) [above=0.5cm of x3] {};
+                    \node [rectangle,minimum height=1cm,minimum width=0.5cm] (box4) [above=0.5cm of x4] {};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box5) [above=0.5cm of x5] {};
+                    \node [rectangle,draw,minimum height=1cm,minimum width=0.5cm] (box6) [above=0.57cm of x6] {};
+                    \node [] (y) [right=0.5cm of box6] {};
+                    \draw [-] (x1) -- (box1);
+                    \draw [-] (x2) -- (box2);
+                    \draw [-] (x3) -- (box3);
+                    \draw [-] (x5) -- (box5);
+                    \draw [-] (x6) -- (box6);
+                    \draw [-] (box1) -- (box2);
+                    \draw [-] (box2) -- (box3);
+                    \draw [-] (box3) -- +(0.93,0);
+                    \draw [-] (box5) -- +(-0.93,0);
+                    \draw [-] (box5) -- (box6);
+                    \draw [-] (box6) -- (y);
+                \end{tikzpicture}
+            \end{center}
+        \caption{An input part of an RNN}
+    \end{figure}
+
+    \noindent An important part in the above diagram is that \textit{all boxes represent the same network}. This is an important feature of an RNN and is where the word \textit{recurrent} comes up. Note that, starting from the second network, the $i$th box accepts not only $\mbx^i$ but also the output of the previous box (i.e. $\left( i-1 \right)$th box). But $\left( i-1 \right)$th box also accepts an output from the $\left( i-2 \right)$th box and so on. Therefore, we can see that the output of $i$th box depends on not only $\mbx^i$ but $\mbx^1,\ldots,\mbx^{i-1}$ as well. If we denote $\mby^i$ to be the output of the $i$th box, then we see that $\left( \mby^{i} \right)^{}_{i}$ is a stochastic process where the $\mby^i$ depends on $\mby^1,\ldots,\mby^{i-1}$, which is a form of a (generalized) \textit{auto-regressive} process.
+
+    \subsubsection{Problems of an RNN}
+    
+    A crucial caveat of an RNN comes from this way of modelling a sequence, however.
+    \begin{enumerate}
+        \item In a sentence, the $i$th word $\mbx^i$ correlates with all other words $\mbx^j$ in the sentence, not only for $j<i$. RNN fails to capture this property.
+        \item Say we have a very long sentence. When an RNN considers the final word $\mbx^k$, notice how the input from the previous words $\mbx^i$ ($i<k$) become progressively weaker as $i$ decreases. To see why, note that, at $i$th network, we are combining $\mby^{i-1},\mbx^i$ to output $\mby^i$. But $\mby^{i-1}$ in turn depends on the outpus of the previous networks, for instance $\mby^1$. Since we are considering an additional input $\mbx^i$ to get $\mby^i$, effectively we expect $\mby^1$ to be less correlated with $\mby^i$ than $\mby^{i-1}$. So as the \textit{time-step} $i$ increases, the information from the earlier networks get weaker. So virtually, we won't be able to access information from $\mbx^1$ at the $i$th time-step when $i$ is very large. Another way of saying this is that, accessing information at distance $i$ from the current time-step requires an operation whose time complexity is nonconstant in $i$ (it is $O\left( \log\left( i \right) \right)$ at its best, at least to the author's current knowledge).
+    \end{enumerate}
+    To tackle this problem, an \textit{attention mechanism} was proposed.    
+
+    \subsection{Attention Mechanism}
+
+    In short, an \textit{attention mechanism} is a mechanism (unsurprisingly) that allows one to access all other $\mbx^j$ in an equal footing when considering $\mbx^i$. Originally, it was proposed to boost the performance of RNNs, but in the paper \textit{Attention Is All You Need}, it was proposed that it can be solely used to build, say, a translator that outperforms RNN based ones. Such a model is called a \textit{transformer}. So why is the attention mechanism so powerful?
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+
+
+
+
+\end{document}
